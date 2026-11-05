@@ -1,5 +1,6 @@
 0.0.15 (unreleased)
 - Support CL clients
+- Add camera bridge (`serve`): snapshot, MJPEG and H.264 HLS endpoints, enabling Prosegur cameras in Home Assistant / Google Home
 
 0.0.14
 - Restore status information from /installation endpoint
