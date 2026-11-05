@@ -7,6 +7,7 @@ import asyncclick as click
 from pyprosegur.auth import Auth, COUNTRY
 from pyprosegur.installation import Installation
 from pyprosegur.exceptions import ProsegurException
+from pyprosegur.bridge import CameraBridge
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -220,6 +221,33 @@ async def request_image(ctx, contract, camera):
         pprint.pprint(r)
 
 
+@click.command()
+@click.pass_context
+@click.argument("contract")
+@click.option("--host", default="127.0.0.1", show_default=True, help="Address to bind.")
+@click.option("--port", default=8090, show_default=True, help="Port to bind.")
+@click.option("--refresh", default=300, show_default=True, help="Seconds between image refreshes.")
+@click.option("--no-request", is_flag=True, help="Only fetch the last stored image, never ask the camera for a new one.")
+@click.option("--http-user", default=None, help="Protect the bridge with HTTP Basic auth (user).")
+@click.option("--http-password", default=None, help="Protect the bridge with HTTP Basic auth (password).")
+@click.option("--hls", is_flag=True, help="Also serve an H.264 HLS stream (requires ffmpeg); needed for Google Home via Home Assistant.")
+async def serve(ctx, contract, host, port, refresh, no_request, http_user, http_password, hls):
+    """Serve CONTRACT cameras as snapshot/MJPEG HTTP endpoints (for Home Assistant / Google Home)."""
+    async with aiohttp.ClientSession() as session:
+        auth = Auth(session, ctx.obj["username"], ctx.obj["password"], ctx.obj["country"])
+        bridge = CameraBridge(
+            auth,
+            contract,
+            refresh_interval=refresh,
+            request_new=not no_request,
+            username=http_user,
+            password=http_password,
+            hls=hls,
+        )
+        await bridge.run(host, port)
+
+
+prosegur.add_command(serve)
 prosegur.add_command(list_install)
 prosegur.add_command(installation)
 prosegur.add_command(arm)
